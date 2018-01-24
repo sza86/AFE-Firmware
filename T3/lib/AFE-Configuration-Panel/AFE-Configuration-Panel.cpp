@@ -112,6 +112,8 @@ String AFEConfigurationPanel::getLEDConfigurationSite(const String option,
     for (uint8_t i = 0; i < sizeof(Device.configuration.isLED); i++) {
       if (Device.configuration.isLED[i]) {
         Data.saveConfiguration(i, data[i]);
+      } else {
+        break;
       }
     }
   }
@@ -121,6 +123,8 @@ String AFEConfigurationPanel::getLEDConfigurationSite(const String option,
   for (uint8_t i = 0; i < sizeof(Device.configuration.isLED); i++) {
     if (Device.configuration.isLED[i]) {
       page += Site.addLEDConfiguration(i);
+    } else {
+      break;
     }
   }
   page += "<input type=\"submit\" class=\"b bs\" value=\"";

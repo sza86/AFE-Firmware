@@ -49,6 +49,8 @@ void mainPIR() {
         Relay[Pir[i].configuration.relayId].clearTimer();
         Led.off();
       }
+    } else {
+      break;
     }
   }
 }

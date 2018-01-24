@@ -84,8 +84,9 @@ void processHTTPAPIRequest(HTTPCOMMAND request) {
             sendHTTPAPIRequestStatus(request, false);
           }
         }
+      } else {
+        break;
       }
-      /* No such relay */
     }
     if (noRelay) {
       sendHTTPAPIRequestStatus(request, false);
@@ -104,8 +105,9 @@ void processHTTPAPIRequest(HTTPCOMMAND request) {
             sendHTTPAPIRequestStatus(request, false);
           }
         }
+      } else {
+        break;
       }
-      /* No such Pir */
     }
     if (noPir) {
       sendHTTPAPIRequestStatus(request, false);

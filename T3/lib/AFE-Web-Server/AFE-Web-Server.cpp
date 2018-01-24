@@ -78,7 +78,7 @@ void AFEWebServer::generate() {
   } else if (getOptionName() == "led") {
     LED data[5] = {};
     if (getCommand() == SERVER_CMD_SAVE) {
-      for (uint8_t i = 0; i < 5; i++) {
+      for (uint8_t i = 0; i < sizeof(Device.configuration.isLED); i++) {
         data[i] = getLEDData(i);
       }
     }
@@ -105,7 +105,7 @@ void AFEWebServer::generate() {
     }
   } else {
 
-    for (uint8_t i = 0; i < 4; i++) {
+    for (uint8_t i = 0; i < sizeof(Device.configuration.isRelay); i++) {
       if (Device.configuration.isRelay[i]) {
         if (getOptionName() == "relay" + String(i)) {
           RELAY data = {};
@@ -115,10 +115,12 @@ void AFEWebServer::generate() {
           publishHTML(ConfigurationPanel.getRelayConfigurationSite(
               getOptionName(), getCommand(), data, i));
         }
+      } else {
+        break;
       }
     }
 
-    for (uint8_t i = 0; i < 5; i++) {
+    for (uint8_t i = 0; i < sizeof(Device.configuration.isSwitch); i++) {
       if (Device.configuration.isSwitch[i]) {
         if (getOptionName() == "switch" + String(i)) {
           SWITCH data = {};
@@ -128,10 +130,12 @@ void AFEWebServer::generate() {
           publishHTML(ConfigurationPanel.getSwitchConfigurationSite(
               getOptionName(), getCommand(), data, i));
         }
+      } else {
+        break;
       }
     }
 
-    for (uint8_t i = 0; i < 4; i++) {
+    for (uint8_t i = 0; i < sizeof(Device.configuration.isPIR); i++) {
       if (Device.configuration.isPIR[i]) {
         if (getOptionName() == "pir" + String(i)) {
           PIR data = {};
@@ -141,6 +145,8 @@ void AFEWebServer::generate() {
           publishHTML(ConfigurationPanel.getPIRConfigurationSite(
               getOptionName(), getCommand(), data, i));
         }
+      } else {
+        break;
       }
     }
   }
