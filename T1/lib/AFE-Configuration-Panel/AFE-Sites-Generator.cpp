@@ -15,7 +15,7 @@ const String AFESitesGenerator::generateHeader(uint8_t redirect) {
   if (redirect > 0) {
     page += "<meta http-equiv=\"refresh\" content=\"";
     page += String(redirect);
-    page += ";URL=/\">";
+    page += "; url=/\">";
   }
 
   page += "<title>AFE Firmware ";
@@ -79,8 +79,26 @@ const String AFESitesGenerator::generateHeader(uint8_t redirect) {
               "href=\"\\?option=mqtt\">MQTT "
               "Broker</a></li>";
     }
-    if (Device.configuration.isLED[0]) {
-      page += "<li class=\"itm\"><a href=\"\\?option=led\">LED</a></li>";
+    if (Device.configuration.domoticzAPI) {
+      page += "<li class=\"itm\"><a "
+              "href=\"\\?option=domoticz\">";
+      page += language == 0 ? "Serwer Domoticz" : "Domoticz Server";
+      page += "</a></li>";
+    }
+    uint8_t itemPresent = 0;
+
+    for (uint8_t i = 0; i < sizeof(Device.configuration.isLED); i++) {
+      if (Device.configuration.isLED[i]) {
+        itemPresent++;
+      } else {
+        break;
+      }
+    }
+
+    if (itemPresent > 0) {
+      page += "<li class=\"itm\"><a href=\"\\?option=led\">LED";
+      page += language == 0 ? "y" : "s";
+      page += "</a></li>";
     }
 
     if (Device.configuration.isDS18B20) {
@@ -90,15 +108,40 @@ const String AFESitesGenerator::generateHeader(uint8_t redirect) {
     }
 
     if (Device.configuration.isRelay[0]) {
-      page += "<li class=\"itm\"><a href=\"\\?option=relay\">";
+      page += "<li class=\"itm\"><a href=\"\\?option=relay0\">";
       page += language == 0 ? "Przekaźnik" : "Relay";
       page += "</a></li>";
+      if (Device.configuration.isDS18B20) {
+        page += "<li class=\"itm\"><a href=\"\\?option=thermostat\"> - ";
+        page += language == 0 ? "Termostat" : "Thermostat";
+        page += "</a></li>";
+      }
     }
-    if (Device.configuration.isSwitch[0] || Device.configuration.isSwitch[1]) {
-      page += "<li class=\"itm\"><a href=\"\\?option=switch\">";
-      page += language == 0 ? "Przycisk / Włącznik" : "Switch / Button";
-      page += "</a></li>";
+
+    itemPresent = 0;
+    for (uint8_t i = 0; i < sizeof(Device.configuration.isSwitch); i++) {
+      if (Device.configuration.isSwitch[i]) {
+        itemPresent++;
+      } else {
+        break;
+      }
     }
+
+    if (itemPresent > 0) {
+      page += "<li  class=\"itm\"><a><i>";
+      page += language == 0 ? "Przyciski / wyłączniki" : "Buttons / Switches";
+      page += "</i></a></li>";
+
+      for (uint8_t i = 0; i < itemPresent; i++) {
+        page += "<li class=\"itm\"><a href=\"\\?option=switch";
+        page += i;
+        page += "\"> - ";
+        page += language == 0 ? "Przycisk: " : "Switch: ";
+        page += i + 1;
+        page += "</a></li>";
+      }
+    }
+
     page +=
         "<br><br><li class=\"itm\"><a "
         "href=\"\\?option=language\">[PL] Język / "
@@ -165,27 +208,30 @@ const String AFESitesGenerator::generateHeader(uint8_t redirect) {
     page += "</a>. ";
     page += language == 0 ? "Z góry dziękuję" : "Thank you";
     page += "</p>";
-    page +=
-        "<a "
-        "href=\"https://www.paypal.com/cgi-bin/"
-        "webscr?cmd=_donations&business=VBPLM42PYCTM8&lc=PL&item_name="
-        "Wsparcie%20projektu%20AFE%20Firmware&item_number=Firmware%20%5bvT0%"
-        "5d&currency_code=PLN&bn=PP%2dDonationsBF%3abtn_donateCC_LG%2egif%"
-        "3aNonHosted\" target=\"_blank\"><img "
-        "src=\"http://adrian.czabanowski.com/afe/donation/T";
+    page += "<a "
+            "href=\"https://www.paypal.com/cgi-bin/"
+            "webscr?cmd=_donations&business=VBPLM42PYCTM8&lc=PL&item_name="
+            "Wsparcie%20projektu%20AFE%20Firmware&item_number=Firmware%20%5bvT";
+    page += configuration.type;
+    page += "%5d&currency_code=PLN&bn=PP%2dDonationsBF%3abtn_donateCC_LG%2egif%"
+            "3aNonHosted\" target=\"_blank\"><img "
+            "src=\"http://adrian.czabanowski.com/afe/donation/T";
     page += configuration.type;
     page += "/";
     page += configuration.version;
+    page += "/";
+    page += Data.getDeviceID();
     page += "/\" border=\"0\" alt=\"PayPal\" style=\"width:290px\"></a>";
   }
   page += "</div>"
           "<div id=\"r\">";
+
   return page;
 }
 
 String AFESitesGenerator::addDeviceConfiguration() {
-  DEVICE configuration;
-  configuration = Data.getDeviceConfiguration();
+  DEVICE configuration = Data.getDeviceConfiguration();
+  uint8_t itemsNumber = 0;
 
   String body = "<fieldset><div class=\"cf\"><label>";
   body += language == 0 ? "Nazwa urządzenia" : "Device name";
@@ -206,11 +252,42 @@ String AFESitesGenerator::addDeviceConfiguration() {
       body);
 
   body = "<fieldset>";
+  for (uint8_t i = 0; i < sizeof(Device.configuration.isLED); i++) {
+    if (Device.configuration.isLED[i]) {
+      itemsNumber++;
+    } else {
+      break;
+    }
+  }
 
-  body += generateLEDItem(0, configuration.isLED[0]);
-  body += generateRelayItem(0, configuration.isRelay[0]);
-  body += generateSwitchItem(0, configuration.isSwitch[0]);
-  body += generateSwitchItem(1, configuration.isSwitch[1]);
+  body += generateHardwareItemsList(
+      sizeof(Device.configuration.isLED), itemsNumber, "hl",
+      language == 0 ? "Ilość Led'ów" : "Number of LEDs");
+
+  itemsNumber = 0;
+  for (uint8_t i = 0; i < sizeof(Device.configuration.isRelay); i++) {
+    if (Device.configuration.isRelay[i]) {
+      itemsNumber++;
+    } else {
+      break;
+    }
+  }
+
+  body += generateHardwareItemsList(
+      sizeof(Device.configuration.isRelay), itemsNumber, "hr",
+      language == 0 ? "Ilość przekaźników" : "Number of relay");
+
+  itemsNumber = 0;
+  for (uint8_t i = 0; i < sizeof(Device.configuration.isSwitch); i++) {
+    if (Device.configuration.isSwitch[i]) {
+      itemsNumber++;
+    } else {
+      break;
+    }
+  }
+  body += generateHardwareItemsList(
+      sizeof(Device.configuration.isSwitch), itemsNumber, "hs",
+      language == 0 ? "Ilość przycisków" : "Number of switches");
 
   body += "<div class=\"cc\">";
   body += "<label>";
@@ -245,6 +322,16 @@ String AFESitesGenerator::addDeviceConfiguration() {
   body += "<input name=\"h\" type=\"checkbox\" value=\"1\"";
   body += configuration.httpAPI ? " checked=\"checked\"" : "";
   body += ">HTTP API ";
+  body += language == 0 ? "włączone" : "enabled";
+  body += "?";
+  body += "</label>";
+  body += "</div>";
+
+  body += "<div class=\"cc\">";
+  body += "<label>";
+  body += "<input name=\"d\" type=\"checkbox\" value=\"1\"";
+  body += configuration.domoticzAPI ? " checked=\"checked\"" : "";
+  body += ">Domoticz API ";
   body += language == 0 ? "włączone" : "enabled";
   body += "?";
   body += "</label>";
@@ -290,6 +377,12 @@ String AFESitesGenerator::addNetworkConfiguration() {
   body += "<span class=\"hint\">Max 32 ";
   body += language == 0 ? "znaków" : "chars";
   body += "</span>";
+  body += "</div>";
+  body += "<div class=\"cf\">";
+  body += "<label>MAC</label>";
+  body += "<input type=\"text\" readonly=\"readonly\" value=\"";
+  body += WiFi.macAddress();
+  body += "\">";
   body += "</div>";
   body += "</fieldset>";
 
@@ -475,7 +568,7 @@ String AFESitesGenerator::addMQTTBrokerConfiguration() {
   body += "<div class=\"cf\">";
   body += "<label>Port*</label>";
   body += "<input name=\"p\" type=\"number\""
-          " min=\"0\" max=\"99999\" step=\"1\" value=\"";
+          " min=\"0\" max=\"65535\" step=\"1\" value=\"";
   body += configuration.port;
   body += "\">";
   body += "</div>";
@@ -523,19 +616,85 @@ String AFESitesGenerator::addMQTTBrokerConfiguration() {
       body);
 }
 
+String AFESitesGenerator::addDomoticzServerConfiguration() {
+
+  DOMOTICZ configuration;
+  configuration = Data.getDomoticzConfiguration();
+
+  String body = "<fieldset>";
+
+  body += "<div class=\"cf\">";
+  body += "<label>";
+  body += language == 0 ? "Protokół" : "Protocol";
+  body += "* </label>";
+  body += "<select name=\"t\">";
+  body += "<option value=\"0\"";
+  body += configuration.protocol == 0 ? " selected=\"selected\"" : "";
+  body += ">http://</option>";
+  body += "<option value=\"1\"";
+  body += configuration.protocol == 1 ? " selected=\"selected\"" : "";
+  body += ">https://</option>";
+  body += "</select>";
+  body += "</div>";
+
+  body += "<div class=\"cf\">";
+  body += "<label>Hostname/IP*</label>";
+  body += "<input name=\"h\" type=\"text\" maxlength=\"40\" value=\"";
+  body += configuration.host;
+  body += "\">";
+  body += "<span class=\"hint\">Max 40 ";
+  body += language == 0 ? "znaków" : "chars";
+  body += "</span>";
+  body += "</div>";
+  body += "<div class=\"cf\">";
+  body += "<label>Port*</label>";
+  body += "<input name=\"p\" type=\"number\""
+          " min=\"0\" max=\"65535\" step=\"1\" value=\"";
+  body += configuration.port;
+  body += "\">";
+  body += "</div>";
+  body += "<div class=\"cf\">";
+  body += "<label>";
+  body += language == 0 ? "Użytkownik" : "User";
+  body += "</label>";
+  body += "<input name=\"u\" type=\"text\"  maxlength=\"32\" value=\"";
+  body += configuration.user;
+  body += "\">";
+  body += "<span class=\"hint\">Max 32 ";
+  body += language == 0 ? "znaków" : "chars";
+  body += "</span>";
+  body += "</div>";
+  body += "<div class=\"cf\">";
+  body += "<label>";
+  body += language == 0 ? "Hasło" : "Password";
+  body += "</label>";
+  body += "<input name=\"s\" type=\"password\"  maxlength=\"32\" "
+          "value=\"";
+  body += configuration.password;
+  body += "\">";
+  body += "<span class=\"hint\">Max 32 ";
+  body += language == 0 ? "znaków" : "chars";
+  body += "</span>";
+  body += "</div>";
+  body += "</fieldset>";
+
+  return addConfigurationBlock(
+      language == 0 ? "Serwer Domoticz" : "Domoticz Server",
+      language == 0 ? "Wprowadź adres hosta np. localhost lub adres IP"
+                    : "Enter Domoticz hostname or its IP address",
+      body);
+}
+
 String AFESitesGenerator::addLEDConfiguration(uint8_t id) {
   LED configuration;
   configuration = Data.getLEDConfiguration(id);
 
   String body = "<fieldset>";
-
   char filed[13];
-  sprintf(filed, "l%d", id);
-
+  sprintf(filed, "g%d", id);
+  body += "<div class=\"cf\">";
   body += generateConfigParameter_GPIO(filed, configuration.gpio);
-
-  body += "<div class=\"cc\">";
-  body += "<label>";
+  body += "<label style=\"width: 300px;\">";
   body += "<input name=\"o";
   body += id;
   body += "\" type=\"checkbox\" value=\"1\"";
@@ -548,18 +707,56 @@ String AFESitesGenerator::addLEDConfiguration(uint8_t id) {
 
   body += "</fieldset>";
 
+  return addConfigurationBlock("LED #" + String(id + 1), "", body);
+}
+
+String AFESitesGenerator::addSystemLEDConfiguration() {
+  uint8_t configuration = Data.getSystemLedID();
+  AFEDevice Device;
+
+  String body = "<fieldset>";
+
+  body += "<div class=\"cf\">";
+  body += "<label>LED*</label>";
+
+  body += "<select name=\"i\">";
+
+  body += "<option value=\"0\"";
+  body += configuration == 0 ? " selected=\"selected\"" : "";
+  body += language == 0 ? ">Brak" : ">None";
+  body += "</option>";
+
+  for (uint8_t i = 1; i <= sizeof(Device.configuration.isLED); i++) {
+    if (Device.configuration.isLED[i - 1]) {
+      body += "<option value=\"";
+      body += i;
+      body += "\"";
+      body += configuration == i ? " selected=\"selected\"" : "";
+      body += ">";
+      body += i;
+      body += "</option>";
+    } else {
+      break;
+    }
+  }
+
+  body += "</select>";
+  body += "</div>";
+
+  body += "</fieldset>";
+
   return addConfigurationBlock(
-      "LED",
-      language == 0 ? "LED wykorzystywany jest do informowania o zdarzeniach "
-                      "oraz stanie urządzenia"
-                    : "LED is used to inform about events and device status",
+      language == 0 ? "LED systemowy" : "System LED",
+      language == 0 ? "Wybierz diodę LED, która będzie sygnalizowała stan "
+                      "urządzenia oraz występujące zdarzenia"
+                    : "Select LED which will be informing about device status "
+                      "and its events ",
       body);
 }
 
 String AFESitesGenerator::addRelayConfiguration(uint8_t id) {
 
-  RELAY configuration;
-  configuration = Data.getRelayConfiguration(id);
+  RELAY configuration = Data.getRelayConfiguration(id);
 
   DEVICE device;
   device = Data.getDeviceConfiguration();
@@ -583,7 +780,20 @@ String AFESitesGenerator::addRelayConfiguration(uint8_t id) {
   body += language == 0 ? "znaków" : "chars";
   body += "</span>";
   body += "</div>";
-
+  if (device.domoticzAPI) {
+    body += "<div class=\"cf\">";
+    body += "<label>IDX ";
+    body += language == 0 ? "w" : "in";
+    body += " Domoticz*</label>";
+    body += "<input name=\"x" + String(id) +
+            "\" type=\"number\" step=\"1\" min=\"0\" max=\"999999\"  value=\"";
+    body += configuration.idx;
+    body += "\">";
+    body += "<span class=\"hint\">";
+    body += language == 0 ? "Zakres: " : "Range: ";
+    body += "0 - 999999</span>";
+    body += "</div>";
+  }
   body += "<p class=\"cm\">";
   body += language == 0 ? "Wartości domyślne" : "Default values";
   body += "</p>";
@@ -622,55 +832,55 @@ String AFESitesGenerator::addRelayConfiguration(uint8_t id) {
   body += "</select>";
   body += "</div>";
 
-  /* @TODO MQTT */
-  body += "<div class=\"cf\">";
-  body += "<label>";
-  body += language == 0 ? "Po podłączeniu do brokera MQTT"
-                        : "After establishing connection to MQTT Broker";
-  body += "</label>";
-  body += "<select  name=\"mc" + String(id) + "\">";
-  body += "<option value=\"0\"";
-  body +=
-      (configuration.stateMQTTConnected == 0 ? " selected=\"selected\"" : "");
-  body += ">";
-  body += language == 0 ? "Brak akcji" : "No action";
-  body += "</option>";
-  body += "<option value=\"1\"";
-  body +=
-      (configuration.stateMQTTConnected == 1 ? " selected=\"selected\"" : "");
-  body += ">";
-  body += language == 0 ? "Wyłączony" : "Off";
-  body += "</option>";
-  body += "<option value=\"2\"";
-  body +=
-      (configuration.stateMQTTConnected == 2 ? " selected=\"selected\"" : "");
-  body += ">";
-  body += language == 0 ? "Włączony" : "On";
-  body += "</option>";
-  body += "<option value=\"3\"";
-  body +=
-      (configuration.stateMQTTConnected == 3 ? " selected=\"selected\"" : "");
-  body += ">";
-  body += language == 0 ? "Ostatnia zapamiętana wartość" : "Last known state";
-  body += "</option>";
-  body += "<option value=\"4\"";
-  body +=
-      (configuration.stateMQTTConnected == 4 ? " selected=\"selected\"" : "");
-  body += ">";
-  body += language == 0 ? "Przeciwna do ostatniej zapamiętanej"
-                        : "Opposite to the last known state";
-  body += "</option>";
-  body += "<option value=\"5\"";
-  body +=
-      (configuration.stateMQTTConnected == 5 ? " selected=\"selected\"" : "");
-  body += ">";
-  body += language == 0
-              ? "Wartość z systemu sterowania przekaźnikiem (przez MQTT)"
-              : "Get state from a relay's controlling system (over MQTT)";
-  body += "</option>";
-  body += "</select>";
-  body += "</div>";
-
+  if (device.mqttAPI) {
+    body += "<div class=\"cf\">";
+    body += "<label>";
+    body += language == 0 ? "Po podłączeniu do brokera MQTT"
+                          : "After establishing connection to MQTT Broker";
+    body += "</label>";
+    body += "<select  name=\"mc" + String(id) + "\">";
+    body += "<option value=\"0\"";
+    body +=
+        (configuration.stateMQTTConnected == 0 ? " selected=\"selected\"" : "");
+    body += ">";
+    body += language == 0 ? "Brak akcji" : "No action";
+    body += "</option>";
+    body += "<option value=\"1\"";
+    body +=
+        (configuration.stateMQTTConnected == 1 ? " selected=\"selected\"" : "");
+    body += ">";
+    body += language == 0 ? "Wyłączony" : "Off";
+    body += "</option>";
+    body += "<option value=\"2\"";
+    body +=
+        (configuration.stateMQTTConnected == 2 ? " selected=\"selected\"" : "");
+    body += ">";
+    body += language == 0 ? "Włączony" : "On";
+    body += "</option>";
+    body += "<option value=\"3\"";
+    body +=
+        (configuration.stateMQTTConnected == 3 ? " selected=\"selected\"" : "");
+    body += ">";
+    body += language == 0 ? "Ostatnia zapamiętana wartość" : "Last known state";
+    body += "</option>";
+    body += "<option value=\"4\"";
+    body +=
+        (configuration.stateMQTTConnected == 4 ? " selected=\"selected\"" : "");
+    body += ">";
+    body += language == 0 ? "Przeciwna do ostatniej zapamiętanej"
+                          : "Opposite to the last known state";
+    body += "</option>";
+    body += "<option value=\"5\"";
+    body +=
+        (configuration.stateMQTTConnected == 5 ? " selected=\"selected\"" : "");
+    body += ">";
+    body += language == 0
+                ? "Wartość z systemu sterowania przekaźnikiem (przez MQTT)"
+                : "Get state from a relay's controlling system (over MQTT)";
+    body += "</option>";
+    body += "</select>";
+    body += "</div>";
+  }
   body += "<br><p class=\"cm\">";
   body += language == 0 ? "Automatyczne wyłączenie przekaźnika"
                         : "Automatic switching off of the relay";
@@ -710,95 +920,58 @@ String AFESitesGenerator::addRelayConfiguration(uint8_t id) {
     body += language == 0 ? "Brak akcji jeśli jest 0"
                           : "No action if it's set to 0";
     body += "</span></div>";
-
-    body += "<br><p class=\"cm\">";
-    body += language == 0 ? "Termostat" : "Thermostat";
-    body += "</p>";
-
-    body += "<div class=\"cc\">";
-    body += "<label>";
-    body +=
-        "<input name=\"te" + String(id) + "\" type=\"checkbox\" value=\"1\"";
-    body += configuration.thermostat.enabled ? " checked=\"checked\">" : ">";
-    body += language == 0 ? " termostat włączony" : "thermostat enabled";
-    body += "?</label>";
-    body += "</div>";
-
-    body += "<div class=\"cf\">";
-    body += "<label>";
-    body += language == 0 ? "Włącz jeśli temp. jest" : "Switch on if temp. is";
-    body += "</label>";
-
-    body += "<select name=\"so" + String(id) + "\">";
-    body += "<option value=\"0\"";
-    body +=
-        (configuration.thermostat.turnOnAbove == 0 ? " selected=\"selected\""
-                                                   : "");
-    body += ">";
-    body += language == 0 ? "mniejsza" : "below";
-    body += "</option>";
-    body += "<option value=\"1\"";
-    body +=
-        (configuration.thermostat.turnOnAbove == 1 ? " selected=\"selected\""
-                                                   : "");
-    body += ">";
-    body += language == 0 ? "większa" : "above";
-    body += "</option>";
-    body += "</select>";
-    body += "<span> ";
-    body += language == 0 ? "od" : "from";
-    body += " </span>";
-    body += "<input name=\"to" + String(id) +
-            "\" type=\"number\" min=\"-67\" max=\"260\" step=\"any\" value=\"";
-    body += configuration.thermostat.turnOn;
-    body += "\">";
-    body += "<span class=\"hint\">";
-    body += language == 0 ? "Zakres" : "Range";
-    body += ": -55C : +125C (-67F : +260F)</span>";
-    body += "</div>";
-
-    body += "<div class=\"cf\">";
-    body += "<label>";
-    body +=
-        language == 0 ? "Wyłącz jeśli temp. jest" : "Switch off if temp. is";
-    body += "</label>";
-    body += "<select name=\"sf" + String(id) + "\">";
-    body += "<option value=\"0\"";
-    body +=
-        (configuration.thermostat.turnOffAbove == 0 ? " selected=\"selected\""
-                                                    : "");
-    body += ">";
-    body += language == 0 ? "mniejsza" : "below";
-    body += "</option>";
-    body += "<option value=\"1\"";
-    body +=
-        (configuration.thermostat.turnOffAbove == 1 ? " selected=\"selected\""
-                                                    : "");
-    body += ">";
-    body += language == 0 ? "większa" : "above";
-    body += "</option>";
-    body += "</select>";
-    body += "<span> ";
-    body += language == 0 ? "od" : "from";
-    body += " </span>";
-    body += "<input name=\"tf" + String(id) +
-            "\" type=\"number\" min=\"-67\" max=\"260\" step=\"any\" value=\"";
-    body += configuration.thermostat.turnOff;
-    body += "\">";
-
-    body += "<span class=\"hint\">";
-    body += language == 0 ? "Zakres" : "Range";
-    body += ": -55C : +125C (-67F : +260F)</span>";
-    body += "</div>";
   }
+
+  body += "<br><p class=\"cm\">";
+  body += language == 0 ? "Wybierz LED sygnalizujący stan przekaźnika"
+                        : "Select LED informing about relay state";
+  body += "</p>";
+
+  body += "<div class=\"cf\">";
+  body += "<label>LED</label>";
+
+  body += "<select  name=\"l" + String(id) + "\">";
+
+  body += "<option value=\"0\"";
+  body += configuration.ledID == 0 ? " selected=\"selected\"" : "";
+  body += language == 0 ? ">Brak" : ">None";
+  body += "</option>";
+
+  for (uint8_t i = 1; i <= sizeof(Device.configuration.isLED); i++) {
+    if (Device.configuration.isLED[i - 1]) {
+      body += "<option value=\"";
+      body += i;
+      body += "\"";
+      body += configuration.ledID == i ? " selected=\"selected\"" : "";
+      body += ">";
+      body += i;
+      body += "</option>";
+    } else {
+      break;
+    }
+  }
+
+  body += "</select>";
+  body += "</div>";
 
   body += "</fieldset>";
 
   char title[23];
   language == 0 ? sprintf(title, "Przekaźnik #%d", id + 1)
                 : sprintf(title, "Relay #%d", id + 1);
-
   return addConfigurationBlock(title, "", body);
+}
+
+String AFESitesGenerator::addThermostatConfiguration() {
+  RELAY configuration = Data.getRelayConfiguration(0);
+  String body = generateTwoValueController(configuration.thermostat);
+  return addConfigurationBlock(
+      language == 0 ? "Termostat" : "Thermostat",
+      language == 0
+          ? "Termostat kontroluje przekaźnik w "
+            "zależności od wartości temperatury"
+          : "Thermostat controlls the relay depending on temperature value",
+      body);
 }
 
 String AFESitesGenerator::addSwitchConfiguration(uint8_t id) {
@@ -809,22 +982,56 @@ String AFESitesGenerator::addSwitchConfiguration(uint8_t id) {
   String body = "<fieldset>";
   char filed[13];
   sprintf(filed, "g%d", id);
+  body += "<div class=\"cf\">";
   body += generateConfigParameter_GPIO(filed, configuration.gpio);
+  body += "</div>";
   body += "<div class=\"cf\">";
   body += "<label>";
   body += language == 0 ? "Funkcja" : "Functionality";
   body += "</label>";
   body += "<select name=\"f" + String(id) + "\">";
-  body += "<option value=\"11\"";
-  body += (configuration.functionality == 11 ? " selected=\"selected\"" : "");
-  body += ">";
-  body += language == 0 ? "Sterowanie przekaźnikiem" : "Relay control";
-  body += "</option>";
   body += "<option value=\"0\"";
   body += (configuration.functionality == 0 ? " selected=\"selected\"" : "");
   body += ">";
-  body += language == 0 ? "Multifunkcyjny" : "Multifunction";
+  body += language == 0 ? "Przycisk systemowy" : "System button";
   body += "</option>";
+  body += "<option value=\"1\"";
+  body += (configuration.functionality == 1 ? " selected=\"selected\"" : "");
+  body += ">";
+  body += language == 0 ? "Tylko sterowanie przekaźnikiem"
+                        : "Controlling only the relay";
+  body += "</option>";
+
+  body += "</select>";
+  body += "</div>";
+
+  body += "<div class=\"cf\">";
+  body += "<label>";
+  body += language == 0 ? "Przekaźnik sterowany tym przyciskiem"
+                        : "Select relay controlled by this switch";
+  body += "</label>";
+
+  body += "<select  name=\"r" + String(id) + "\">";
+
+  body += "<option value=\"0\"";
+  body += configuration.relayID == 0 ? " selected=\"selected\"" : "";
+  body += language == 0 ? ">Brak" : ">None";
+  body += "</option>";
+
+  for (uint8_t i = 1; i <= sizeof(Device.configuration.isRelay); i++) {
+    if (Device.configuration.isRelay[i - 1]) {
+      body += "<option value=\"";
+      body += i;
+      body += "\"";
+      body += configuration.relayID == i ? " selected=\"selected\"" : "";
+      body += ">";
+      body += i;
+      body += "</option>";
+    } else {
+      break;
+    }
+  }
+
   body += "</select>";
   body += "</div>";
   body += "<div class=\"cf\">";
@@ -847,7 +1054,7 @@ String AFESitesGenerator::addSwitchConfiguration(uint8_t id) {
   body += "<br><p class=\"cm\">";
   body += language == 0
               ? "Czułość należy ustawić metodą prób, aż uzyska się "
-                "porządane działanie przycisku podczas jego wciskania"
+                "pożądane działanie przycisku podczas jego wciskania"
               : "Sensitiveness should be adjusted if switch didn't behave "
                 "as expected while pressing it";
 
@@ -875,11 +1082,27 @@ String AFESitesGenerator::addSwitchConfiguration(uint8_t id) {
 
 String AFESitesGenerator::addDS18B20Configuration() {
 
-  DS18B20 configuration;
-  configuration = Data.getDS18B20Configuration();
+  DS18B20 configuration = Data.getDS18B20Configuration();
+  DEVICE device = Data.getDeviceConfiguration();
 
   String body = "<fieldset>";
   body += generateConfigParameter_GPIO("g", configuration.gpio);
+
+  if (device.domoticzAPI) {
+    body += "<div class=\"cf\">";
+    body += "<label>IDX ";
+    body += language == 0 ? "w" : "in";
+    body += " Domoticz*</label>";
+    body += "<input name=\"x\" type=\"number\" step=\"1\" min=\"0\" "
+            "max=\"999999\"  value=\"";
+    body += configuration.idx;
+    body += "\">";
+    body += "<span class=\"hint\">";
+    body += language == 0 ? "Zakres: " : "Range: ";
+    body += "0 - 999999</span>";
+    body += "</div>";
+  }
+
   body += "<div class=\"cf\">";
   body += "<label>";
   body += language == 0 ? "Odczyty co" : "Read every";
@@ -894,6 +1117,17 @@ String AFESitesGenerator::addDS18B20Configuration() {
                         : "seconds. Range: 5 to 86400sec";
   body += " (24h)</span>";
   body += "</div>";
+
+  body += "<div class=\"cc\">";
+  body += "<label>";
+  body += "<input name=\"o\" type=\"checkbox\" value=\"1\"";
+  body += configuration.sendOnlyChanges ? " checked=\"checked\"" : "";
+  body += language == 0
+              ? ">Wysyłać dane tylko, gdy wartość temperatury zmieni się"
+              : ">Send data only if value of temperature has changed";
+  body += "</label>";
+  body += "</div>";
+
   body += "<div class=\"cf\">";
   body += "<label>";
   body += language == 0 ? "Korekta wartości o" : "Temperature correction";
@@ -938,9 +1172,20 @@ String AFESitesGenerator::addUpgradeSection() {
   body += "<input class=\"bs\" name=\"update\" type=\"file\" accept=\".bin\">";
   body += "</div>";
   body += "<p class=\"cm\">";
-  body += language == 0 ? "Po zakończeniu aktualizacji urządzenie zostanie "
-                          "automatycznie zresetowane"
-                        : "Device will be automatically rebooted after upgrade";
+  body +=
+      language == 0
+          ? "Po zakończeniu aktualizacji urządzenie zostanie "
+            "automatycznie zresetowane<br><br><strong>Uwaga:</strong> po "
+            "aktualizacji nie odłączaj urządzenia przez conajmniej 1min.<br>"
+            "Urządzenie formatuje pamięc i wgrywa domyślne ustawienia. "
+            "<br><strong>Ten proces nie może zostac przerwany</strong>."
+          : "Device will be automatically rebooted after "
+            "upgrade<br><br><strong>Warning</strong>: after upgrade do not "
+            "plug "
+            "off the device from power source for around a minute.<br>Device's "
+            "memory "
+            "will be formatted and default settings will be "
+            "uploaded.<br><strong>This process cannot be interrupted</strong>";
   body += "</p>";
   body += "<button type=\"submit\" class=\"b be\">";
   body += language == 0 ? "Aktualizuj" : "Upgrade";
@@ -1001,7 +1246,6 @@ String AFESitesGenerator::addResetSection(uint8_t command) {
     body += language == 0 ? "Trwa przywracanie ustawień początkowych"
                           : "Restoring configuration is in progress";
     body += "</p><p class=\"cm\">";
-
     body += language == 0 ? "Po 20 sekundach połącz się z siecią WiFi o "
                             "nazwie: <strong>AFE-Device</strong>, a następnie "
                             "połącz się z "
@@ -1070,7 +1314,7 @@ String AFESitesGenerator::addLanguageConfiguration() {
   body += ">English</option>";
   body += "</select>";
   body += "</div>";
-
+  body += "</fieldset>";
   String page = addConfigurationBlock("Language / Język",
                                       "Choose language / "
                                       "Wybierz język",
@@ -1108,47 +1352,109 @@ const String AFESitesGenerator::generateConfigParameter_GPIO(const char *field,
   return page;
 }
 
-const String AFESitesGenerator::generateSwitchItem(uint8_t id,
-                                                   boolean checked) {
-  String body = "<div class=\"cc\">";
-  body += "<label>";
-  body += "<input name=\"s";
-  body += id;
-  body += "\" type =\"checkbox\" value=\"1\"";
-  body += checked ? " checked=\"checked\"" : "";
-  body += ">";
-  body += language == 0 ? "Przycisk / włącznik #" : "Button / switch #";
-  body += id + 1;
+const String AFESitesGenerator::generateHardwareItemsList(
+    uint8_t noOfItems, uint8_t noOffConnected, const char *field,
+    const char *label) {
+
+  String body = "<div class=\"cf\"><label>";
+  body += label;
   body += "</label>";
+  body += "<select name=\"";
+  body += field;
+  body += "\">";
+  body += "<option value=\"0\"";
+  body += (noOffConnected == 0 ? " selected=\"selected\"" : "");
+  body += ">";
+  body += language == 0 ? "Brak" : "None";
+  body += "</option>";
+
+  for (uint8_t i = 1; i <= noOfItems; i++) {
+    body += "<option value=\"";
+    body += i;
+    body += "\"";
+    body += noOffConnected == i ? " selected=\"selected\"" : "";
+    body += ">";
+    body += i;
+    body += "</option>";
+  }
+
+  body += "</select>";
   body += "</div>";
 
   return body;
 }
 
-const String AFESitesGenerator::generateRelayItem(uint8_t id, boolean checked) {
-  String body = "<div class=\"cc\">";
+const String
+AFESitesGenerator::generateTwoValueController(REGULATOR configuration) {
+
+  String body = "<fieldset>";
+
+  body += "<div class=\"cc\">";
   body += "<label>";
-  body += "<input name=\"r";
-  body += id;
-  body += "\" type =\"checkbox\" value=\"1\"";
-  body += checked ? " checked=\"checked\"" : "";
-  body += ">";
-  body += language == 0 ? "Przekaźnik" : "Relay";
+  body += "<input name=\"te\" type=\"checkbox\" value=\"1\"";
+  body += configuration.enabled ? " checked=\"checked\">" : ">";
+
+  body += language == 0 ? " włączony" : "enabled";
+
+  body += "?</label>";
+  body += "</div>";
+
+  body += "<div class=\"cf\">";
+  body += "<label>";
+  body += language == 0 ? "Włącz jeśli " : "Switch on if ";
+  body += "temp.";
+  body += language == 0 ? " jest" : " is";
   body += "</label>";
-  body += "</div>";
 
-  return body;
-}
+  body += "<select name=\"ta\"><option value=\"0\"";
+  body += (configuration.turnOnAbove == 0 ? " selected=\"selected\"" : "");
+  body += ">";
+  body += language == 0 ? "mniejsza" : "below";
+  body += "</option>";
+  body += "<option value=\"1\"";
+  body += (configuration.turnOnAbove == 1 ? " selected=\"selected\"" : "");
+  body += ">";
+  body += language == 0 ? "większa" : "above";
+  body += "</option>";
+  body += "</select>";
+  body += "<span> ";
+  body += language == 0 ? "od" : "from";
+  body += " </span>";
+  body += "<input name=\"tn\" type=\"number\" value=\"";
+  body += configuration.turnOn;
+  body += "\" min=\"-55\" max=\"125\" step=\"any\"><span class=\"hint\">";
+  body += language == 0 ? "Zakres" : "Range";
+  body += ": -55&deg;C : +125&deg;C (-67&deg;F : +260&deg;F)";
 
-const String AFESitesGenerator::generateLEDItem(uint8_t id, boolean checked) {
-  String body = "<div class=\"cc\">";
+  body += "</span></div>";
+
+  body += "<div class=\"cf\">";
   body += "<label>";
-  body += "<input name=\"l";
-  body += id;
-  body += "\" type =\"checkbox\" value=\"1\"";
-  body += checked ? " checked=\"checked\"" : "";
-  body += ">LED</label>";
-  body += "</div>";
+  body += language == 0 ? "Wyłącz jeśli " : "Switch off if ";
+  body += "temp.";
+  body += language == 0 ? " jest" : " is";
+  body += "</label>";
+  body += "<select name=\"tb\"><option value=\"0\"";
+  body += (configuration.turnOffAbove == 0 ? " selected=\"selected\"" : "");
+  body += ">";
+  body += language == 0 ? "mniejsza" : "below";
+  body += "</option>";
+  body += "<option value=\"1\"";
+  body += (configuration.turnOffAbove == 1 ? " selected=\"selected\"" : "");
+  body += ">";
+  body += language == 0 ? "większa" : "above";
+  body += "</option>";
+  body += "</select>";
+  body += "<span> ";
+  body += language == 0 ? "od" : "from";
+  body += " </span>";
+  body += "<input name=\"tf\" type=\"number\" value=\"";
+  body += configuration.turnOff;
+  body += "\" min=\"-55\" max=\"125\" step=\"any\"><span class=\"hint\">";
+  body += language == 0 ? "Zakres" : "Range";
+  body += ": -55&deg;C : +125&deg;C (-67&deg;F : +260&deg;F)";
+
+  body += "</div></fieldset>";
 
   return body;
 }

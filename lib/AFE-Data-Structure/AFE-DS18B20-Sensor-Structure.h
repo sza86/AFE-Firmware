@@ -19,6 +19,8 @@ struct DS18B20 {
   float correction;
   uint16_t interval;
   uint8_t unit;
+  boolean sendOnlyChanges;
+  unsigned long idx;
 };
 
 #endif

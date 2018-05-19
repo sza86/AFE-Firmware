@@ -13,7 +13,6 @@
 
 #include <AFE-Configuration-Panel.h>
 #include <AFE-Data-Access.h>
-#include <AFE-Data-Structures.h>
 #include <AFE-Device.h>
 #include <AFE-OTA.h>
 #include <ESP8266WebServer.h>
@@ -29,6 +28,9 @@ private:
   HTTPCOMMAND httpCommand; // It stores last HTTP API request
   boolean receivedHTTPCommand =
       false; // Once HTTP API requet is recieved it's set to true
+  boolean _refreshConfiguration = false; // when it's set to true device
+                                         // configuration is refreshed. Required
+                                         // by generate() method
 
   /* Method pushes HTML site from WebServer */
   void publishHTML(String page);
@@ -43,14 +45,14 @@ private:
   DEVICE getDeviceData();
   NETWORK getNetworkData();
   MQTT getMQTTData();
+  DOMOTICZ getDomoticzServerData();
   RELAY getRelayData(uint8_t id);
   SWITCH getSwitchData(uint8_t id);
   LED getLEDData(uint8_t id);
   DS18B20 getDS18B20Data();
+  REGULATOR getThermostateData();
+  uint8_t getSystemLEDData();
   uint8_t getLanguageData();
-
-  // @TODO DOMOTICZ getDomoticzData();
-  // @TODO DS18B20 getDS18B20Data();
 
 public:
   AFEWebServer();

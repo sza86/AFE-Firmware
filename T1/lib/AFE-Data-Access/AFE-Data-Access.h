@@ -27,28 +27,28 @@ public:
   FIRMWARE getFirmwareConfiguration();
   NETWORK getNetworkConfiguration();
   MQTT getMQTTConfiguration();
+  DOMOTICZ getDomoticzConfiguration();
   LED getLEDConfiguration(uint8_t id);
   RELAY getRelayConfiguration(uint8_t id);
   SWITCH getSwitchConfiguration(uint8_t id);
   DS18B20 getDS18B20Configuration();
-  // @TODO DOMOTICZ getDomoticzConfiguration();
 
   /* Methods save configuration to EEPROM */
   void saveConfiguration(DEVICE configuration);
   void saveConfiguration(FIRMWARE configuration);
   void saveConfiguration(NETWORK configuration);
   void saveConfiguration(MQTT configuration);
+  void saveConfiguration(DOMOTICZ configuration);
   void saveConfiguration(uint8_t id, LED configuration);
   void saveConfiguration(uint8_t id, RELAY configuration);
+  void saveConfiguration(REGULATOR configuration);
   void saveConfiguration(uint8_t id, SWITCH configuration);
   void saveConfiguration(DS18B20 configuration);
-  // @TODO DOMOTICZ void saveConfiguration(DOMOTICZ configuration);
 
   /* Methods read and save firmware version from/to EEPROM */
-  const char getVersion();
   void saveVersion(String version);
 
-  /* Methods read and save relay state from/to EEPROM */
+  /* Methods save relay state from/to EEPROM */
   boolean getRelayState(uint8_t id);
   void saveRelayState(uint8_t id, boolean state);
 
@@ -63,5 +63,16 @@ public:
   /* Methods read and save thermostate state */
   boolean isThermostatEnabled(uint8_t id);
   void saveThermostatState(uint8_t id, boolean state);
+
+  /* Methods read and save ID of system led */
+  uint8_t getSystemLedID();
+  void saveSystemLedID(uint8_t id);
+
+  /* Methods saves and reads device ID */
+  const String getDeviceID();
+  void saveDeviceID(String id);
+
+  /* Methods turns on / off APIs */
+  void saveAPI(uint8_t apiID, boolean state);
 };
 #endif

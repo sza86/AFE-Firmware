@@ -19,6 +19,11 @@ struct DH {
   uint8_t type;
   TEMPERATURE temperature;
   HUMIDITY humidity;
+  boolean sendOnlyChanges;
+  boolean publishHeatIndex;
+  unsigned long temperatureIdx;
+  unsigned long humidityIdx;
+  unsigned long temperatureAndHumidityIdx;
 };
 
 #endif

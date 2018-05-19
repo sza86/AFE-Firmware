@@ -91,7 +91,8 @@ void AFESensorDHT::listener() {
     if (temperatureTime - temperatureCounterStartTime >=
         configuration.temperature.interval * 1000) {
       float newTemperature = getTemperature();
-      if (newTemperature != currentTemperature) {
+      if (!configuration.sendOnlyChanges ||
+          newTemperature != currentTemperature) {
         currentTemperature = newTemperature;
         temperatureInBuffer = true;
       }
@@ -101,11 +102,27 @@ void AFESensorDHT::listener() {
     if (humidityTime - humidityCounterStartTime >=
         configuration.humidity.interval * 1000) {
       float newHumidity = getHumidity();
-      if (newHumidity != currentHumidity) {
+      if (!configuration.sendOnlyChanges || newHumidity != currentHumidity) {
         currentHumidity = newHumidity;
         humidityInBuffer = true;
       }
       humidityCounterStartTime = 0;
     }
   }
+}
+
+unsigned long AFESensorDHT::getDomoticzIDX(uint8_t type) {
+  unsigned long idx;
+  if (type == IDX_TYPE_TEMPERATURE) {
+    idx = configuration.temperatureIdx;
+  } else if (type == IDX_TYPE_HUMIDITY) {
+    idx = configuration.humidityIdx;
+  } else {
+    idx = configuration.temperatureAndHumidityIdx;
+  }
+  return idx;
+}
+
+boolean AFESensorDHT::publishHeatIndex() {
+  return configuration.publishHeatIndex;
 }
