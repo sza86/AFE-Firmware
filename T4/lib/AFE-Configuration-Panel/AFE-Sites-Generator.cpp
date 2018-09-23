@@ -429,20 +429,24 @@ String AFESitesGenerator::addNetworkConfiguration() {
   body += "<label>";
   body += language == 0 ? "Bramka" : "Gateway";
   body += "</label>";
-  body += "<input name=\"g1\" type=\"number\" max=\"255\" min=\"0\" step=\"1\" "
-          "style=\"width:70px\" value=\"";
+  body +=
+      "<input name=\"g1\" type=\"number\"  max=\"255\" min=\"0\" step=\"1\" "
+      "style=\"width:70px\" value=\"";
   body += configuration.gateway[0];
   body += "\">.";
-  body += "<input name=\"g2\" type=\"number\" max=\"255\" min=\"0\" step=\"1\" "
-          "style=\"width:70px\" value=\"";
+  body +=
+      "<input name=\"g2\" type=\"number\"  max=\"255\" min=\"0\" step=\"1\" "
+      "style=\"width:70px\" value=\"";
   body += configuration.gateway[1];
   body += "\">.";
-  body += "<input name=\"g3\" type=\"number\" max=\"255\" min=\"0\" step=\"1\" "
-          "style=\"width:70px\" value=\"";
+  body +=
+      "<input name=\"g3\" type=\"number\"  max=\"255\" min=\"0\" step=\"1\" "
+      "style=\"width:70px\" value=\"";
   body += configuration.gateway[2];
   body += "\">.";
-  body += "<input name=\"g4\" type=\"number\" max=\"255\" min=\"0\" step=\"1\" "
-          "style=\"width:70px\" value=\"";
+  body +=
+      "<input name=\"g4\" type=\"number\"  max=\"255\" min=\"0\" step=\"1\" "
+      "style=\"width:70px\" value=\"";
   body += configuration.gateway[3];
   body += "\">";
   body += "</div>";
@@ -756,8 +760,7 @@ String AFESitesGenerator::addRelayConfiguration(uint8_t id) {
 
   RELAY configuration = Data.getRelayConfiguration(id);
 
-  DEVICE device;
-  device = Data.getDeviceConfiguration();
+  DEVICE device = Data.getDeviceConfiguration();
 
   String body = "<fieldset>";
 
