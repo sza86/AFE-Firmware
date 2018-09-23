@@ -1,6 +1,6 @@
 /* AFE Firmware for smart home devices
   LICENSE: https://github.com/tschaban/AFE-Firmware/blob/master/LICENSE
-  DOC: http://smart-house.adrian.czabanowski.com/afe-firmware-pl/ */
+  DOC: https://www.smartnydom.pl/afe-firmware-pl/ */
 
 #include "AFE-Data-Access.h"
 
@@ -9,32 +9,32 @@ AFEDataAccess::AFEDataAccess() {}
 DEVICE AFEDataAccess::getDeviceConfiguration() {
   DEVICE configuration;
 
+  uint8_t index = 3;
+  for (uint8_t i = 0; i < sizeof(configuration.isLED); i++) {
+    configuration.isLED[i] = Eeprom.read(366 + i * index);
+  }
+
+  index = 21;
+  for (uint8_t i = 0; i < sizeof(configuration.isRelay); i++) {
+    configuration.isRelay[i] = Eeprom.read(381 + i * index);
+  }
+
+  index = 7;
+  for (uint8_t i = 0; i < sizeof(configuration.isSwitch); i++) {
+    configuration.isSwitch[i] = Eeprom.read(470 + i * index);
+  }
+
+  index = 27;
+  for (uint8_t i = 0; i < sizeof(configuration.isPIR); i++) {
+    configuration.isPIR[i] = Eeprom.read(505 + i * index);
+  }
+
   Eeprom.read(9, 16).toCharArray(configuration.name,
                                  sizeof(configuration.name));
-  configuration.isLED[0] = Eeprom.read(366);
-  configuration.isLED[1] = Eeprom.read(369);
-  configuration.isLED[2] = Eeprom.read(372);
-  configuration.isLED[3] = Eeprom.read(375);
-  configuration.isLED[4] = Eeprom.read(378);
-
-  configuration.isRelay[0] = Eeprom.read(381);
-  configuration.isRelay[1] = Eeprom.read(402);
-  configuration.isRelay[2] = Eeprom.read(423);
-  configuration.isRelay[3] = Eeprom.read(444);
-
-  configuration.isSwitch[0] = Eeprom.read(470);
-  configuration.isSwitch[1] = Eeprom.read(477);
-  configuration.isSwitch[2] = Eeprom.read(484);
-  configuration.isSwitch[3] = Eeprom.read(491);
-  configuration.isSwitch[4] = Eeprom.read(498);
-
-  configuration.isPIR[0] = Eeprom.read(505);
-  configuration.isPIR[1] = Eeprom.read(532);
-  configuration.isPIR[2] = Eeprom.read(559);
-  configuration.isPIR[3] = Eeprom.read(586);
 
   configuration.httpAPI = Eeprom.read(25);
   configuration.mqttAPI = Eeprom.read(228);
+  configuration.domoticzAPI = Eeprom.read(800);
 
   return configuration;
 }
@@ -86,6 +86,19 @@ MQTT AFEDataAccess::getMQTTConfiguration() {
   return configuration;
 }
 
+DOMOTICZ AFEDataAccess::getDomoticzConfiguration() {
+  DOMOTICZ configuration;
+
+  configuration.protocol = Eeprom.readUInt8(801);
+  Eeprom.read(802, 40).toCharArray(configuration.host,
+                                   sizeof(configuration.host));
+  configuration.port = Eeprom.read(842, 5).toInt();
+  Eeprom.read(847, 32).toCharArray(configuration.user, 32);
+  Eeprom.read(879, 32).toCharArray(configuration.password,
+                                   sizeof(configuration.password));
+  return configuration;
+}
+
 LED AFEDataAccess::getLEDConfiguration(uint8_t id) {
   LED configuration;
   uint8_t nextLed = 3;
@@ -98,7 +111,6 @@ RELAY AFEDataAccess::getRelayConfiguration(uint8_t id) {
   RELAY configuration;
   MQTT configurationMQTT;
   uint8_t nextRelay = 21;
-  char mqttTopic[49];
   configuration.gpio = Eeprom.readUInt8(382 + id * nextRelay);
 
   configuration.statePowerOn = Eeprom.readUInt8(384 + id * nextRelay);
@@ -114,10 +126,9 @@ RELAY AFEDataAccess::getRelayConfiguration(uint8_t id) {
   sprintf(configuration.mqttTopic, "%s%s/", configurationMQTT.topic,
           configuration.name);
 
-  configuration.ledID = 0; // @TODO added for compatibility with the code
-                           // introduced in T4 so the Relay can switch on
-                           // assigned to it LED. To added for this version in
-                           // future
+  configuration.ledID = Eeprom.readUInt8(421 + id);
+
+  configuration.idx = Eeprom.read(930 + id, 6).toInt();
 
   return configuration;
 }
@@ -129,6 +140,7 @@ SWITCH AFEDataAccess::getSwitchConfiguration(uint8_t id) {
   configuration.type = Eeprom.readUInt8(472 + id * nextSwitch);
   configuration.sensitiveness = Eeprom.read(473 + id * nextSwitch, 3).toInt();
   configuration.functionality = Eeprom.readUInt8(476 + id * nextSwitch);
+  configuration.relayID = Eeprom.readUInt8(416 + id);
 
   return configuration;
 }
@@ -159,30 +171,30 @@ PIR AFEDataAccess::getPIRConfiguration(uint8_t id) {
 
 void AFEDataAccess::saveConfiguration(DEVICE configuration) {
   Eeprom.write(9, 16, configuration.name);
-  Eeprom.write(381, configuration.isRelay[0]);
-  Eeprom.write(402, configuration.isRelay[1]);
-  Eeprom.write(423, configuration.isRelay[2]);
-  Eeprom.write(444, configuration.isRelay[3]);
 
-  Eeprom.write(470, configuration.isSwitch[0]);
-  Eeprom.write(477, configuration.isSwitch[1]);
-  Eeprom.write(484, configuration.isSwitch[2]);
-  Eeprom.write(491, configuration.isSwitch[3]);
-  Eeprom.write(498, configuration.isSwitch[4]);
+  uint8_t index = 21;
+  for (uint8_t i = 0; i < sizeof(configuration.isRelay); i++) {
+    Eeprom.write(381 + i * index, configuration.isRelay[i]);
+  }
 
-  Eeprom.write(366, configuration.isLED[0]);
-  Eeprom.write(369, configuration.isLED[1]);
-  Eeprom.write(372, configuration.isLED[2]);
-  Eeprom.write(375, configuration.isLED[3]);
-  Eeprom.write(378, configuration.isLED[4]);
+  index = 7;
+  for (uint8_t i = 0; i < sizeof(configuration.isSwitch); i++) {
+    Eeprom.write(470 + i * index, configuration.isSwitch[i]);
+  }
 
-  Eeprom.write(505, configuration.isPIR[0]);
-  Eeprom.write(532, configuration.isPIR[1]);
-  Eeprom.write(559, configuration.isPIR[2]);
-  Eeprom.write(586, configuration.isPIR[3]);
+  index = 3;
+  for (uint8_t i = 0; i < sizeof(configuration.isLED); i++) {
+    Eeprom.write(366 + i * index, configuration.isLED[i]);
+  }
 
-  Eeprom.write(25, configuration.httpAPI);
-  Eeprom.write(228, configuration.mqttAPI);
+  index = 27;
+  for (uint8_t i = 0; i < sizeof(configuration.isPIR); i++) {
+    Eeprom.write(505 + i * index, configuration.isPIR[i]);
+  }
+
+  saveAPI(API_MQTT, configuration.mqttAPI);
+  saveAPI(API_HTTP, configuration.httpAPI);
+  saveAPI(API_DOMOTICZ, configuration.domoticzAPI);
 }
 
 void AFEDataAccess::saveConfiguration(FIRMWARE configuration) {
@@ -213,12 +225,22 @@ void AFEDataAccess::saveConfiguration(MQTT configuration) {
   Eeprom.write(334, 32, configuration.topic);
 }
 
+void AFEDataAccess::saveConfiguration(DOMOTICZ configuration) {
+  Eeprom.writeUInt8(801, configuration.protocol);
+  Eeprom.write(802, 40, configuration.host);
+  Eeprom.write(842, 5, (long)configuration.port);
+  Eeprom.write(847, 32, configuration.user);
+  Eeprom.write(879, 32, configuration.password);
+}
+
 void AFEDataAccess::saveConfiguration(uint8_t id, RELAY configuration) {
   uint8_t nextRelay = 21;
   Eeprom.writeUInt8(382 + id * nextRelay, configuration.gpio);
   Eeprom.writeUInt8(384 + id * nextRelay, configuration.statePowerOn);
   Eeprom.write(385 + id * nextRelay, 16, configuration.name);
   Eeprom.writeUInt8(401 + id * nextRelay, configuration.stateMQTTConnected);
+  Eeprom.writeUInt8(531 + id, configuration.ledID);
+  Eeprom.write(930 + 6 * id, 6, (long)configuration.idx);
 }
 
 void AFEDataAccess::saveConfiguration(uint8_t id, LED configuration) {
@@ -233,6 +255,7 @@ void AFEDataAccess::saveConfiguration(uint8_t id, SWITCH configuration) {
   Eeprom.writeUInt8(472 + id * nextSwitch, configuration.type);
   Eeprom.write(473 + id * nextSwitch, 3, (long)configuration.sensitiveness);
   Eeprom.writeUInt8(476 + id * nextSwitch, configuration.functionality);
+  Eeprom.writeUInt8(497 + id * nextSwitch, configuration.relayID);
 }
 
 void AFEDataAccess::saveConfiguration(uint8_t id, PIR configuration) {
@@ -243,12 +266,6 @@ void AFEDataAccess::saveConfiguration(uint8_t id, PIR configuration) {
   Eeprom.writeUInt8(525 + id * nextPIR, configuration.relayId);
   Eeprom.write(526 + id * nextPIR, 5, (long)configuration.howLongKeepRelayOn);
   Eeprom.write(531 + id * nextPIR, configuration.invertRelayState);
-}
-
-const char AFEDataAccess::getVersion() {
-  char version[7];
-  Eeprom.read(0, 7).toCharArray(version, sizeof(version));
-  return *version;
 }
 
 void AFEDataAccess::saveVersion(String version) { Eeprom.write(0, 7, version); }
@@ -273,4 +290,25 @@ uint8_t AFEDataAccess::getLanguage() { return Eeprom.readUInt8(8); }
 
 void AFEDataAccess::saveLanguage(uint8_t language) {
   Eeprom.writeUInt8(8, language);
+}
+
+uint8_t AFEDataAccess::getSystemLedID() { return Eeprom.readUInt8(415); }
+
+void AFEDataAccess::saveSystemLedID(uint8_t id) { Eeprom.writeUInt8(415, id); }
+
+const String AFEDataAccess::getDeviceID() { return Eeprom.read(1000, 8); }
+
+void AFEDataAccess::saveDeviceID(String id) { Eeprom.write(1000, 8, id); }
+
+void AFEDataAccess::saveAPI(uint8_t apiID, boolean state) {
+  if (apiID == API_HTTP) {
+    Eeprom.write(25, state);
+  } else if (apiID == API_MQTT) {
+    Eeprom.write(228, state);
+  } else if (apiID == API_DOMOTICZ) {
+    Eeprom.write(800, state);
+    if (state) {
+      Eeprom.write(25, true);
+    }
+  }
 }

@@ -2,11 +2,13 @@
   LICENSE: https://github.com/tschaban/AFE-Firmware/blob/master/LICENSE
   DOC: http://smart-house.adrian.czabanowski.com/afe-firmware-pl/ */
 
-#if defined(ARDUINO) && ARDUINO >= 100
-#include "arduino.h"
-#else
-#include "WProgram.h"
-#endif
+/* Initializing MQTT */
+void MQTTInit() {
+  if (Device.getMode() != MODE_ACCESS_POINT && Device.configuration.mqttAPI) {
+    MQTTConfiguration = Data.getMQTTConfiguration();
+    Mqtt.begin();
+  }
+}
 
 /* Method is launched after MQTT Message is received */
 void MQTTMessagesListener(char *topic, byte *payload, unsigned int length) {

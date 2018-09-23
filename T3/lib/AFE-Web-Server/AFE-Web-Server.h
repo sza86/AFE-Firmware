@@ -1,6 +1,6 @@
 /* AFE Firmware for smart home devices
   LICENSE: https://github.com/tschaban/AFE-Firmware/blob/master/LICENSE
-  DOC: http://smart-house.adrian.czabanowski.com/afe-firmware-pl/ */
+  DOC: https://www.smartnydom.pl/afe-firmware-pl/ */
 
 #ifndef _AFE_Web_Server_h
 #define _AFE_Web_Server_h
@@ -13,7 +13,6 @@
 
 #include <AFE-Configuration-Panel.h>
 #include <AFE-Data-Access.h>
-#include <AFE-Data-Structures.h>
 #include <AFE-Device.h>
 #include <AFE-OTA.h>
 #include <ESP8266WebServer.h>
@@ -30,10 +29,9 @@ private:
   boolean receivedHTTPCommand =
       false; // Once HTTP API requet is recieved it's set to true
 
-  boolean _refreshConfiguration =
-      false; // when it's set to true device configuration is refreshed. It's
-             // set by getPIR. It means device configuration data where update
-             // Required by generate() method
+  boolean _refreshConfiguration = false; // when it's set to true device
+                                         // configuration is refreshed. Required
+                                         // by generate() method
 
   /* Method pushes HTML site from WebServer */
   void publishHTML(String page);
@@ -48,9 +46,11 @@ private:
   DEVICE getDeviceData();
   NETWORK getNetworkData();
   MQTT getMQTTData();
+  DOMOTICZ getDomoticzServerData();
   RELAY getRelayData(uint8_t id);
   SWITCH getSwitchData(uint8_t id);
   LED getLEDData(uint8_t id);
+  uint8_t getSystemLEDData();
   PIR getPIRData(uint8_t id);
 
   uint8_t getLanguageData();

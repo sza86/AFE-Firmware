@@ -2,8 +2,7 @@
   LICENSE: https://github.com/tschaban/AFE-Firmware/blob/master/LICENSE
   DOC: http://smart-house.adrian.czabanowski.com/afe-firmware-pl/ */
 
-#include "AFE-MQTT.h"
-#include <AFE-Configuration.h>
+#include <AFE-API-MQTT.h>
 #include <AFE-Data-Access.h>
 #include <AFE-Device.h>
 #include <AFE-LED.h>
@@ -52,41 +51,33 @@ void setup() {
     Device.reboot(MODE_ACCESS_POINT);
   }
 
-  /* Initializing relay and setting it's default state at power on*/
-  if (Device.getMode() == MODE_NORMAL) {
-    for (uint8_t i = 0; i < sizeof(Device.configuration.isRelay); i++) {
-      if (Device.configuration.isRelay[i]) {
-        Relay[i].begin(i);
-        Relay[i].setRelayAfterRestoringPower();
-      } else {
-        break;
-      }
-    }
-  }
+  /* Initializing relay */
+  initRelay();
   /* Initialzing network */
   Network.begin(Device.getMode());
 
   /* Initializing LED, checking if LED exists is made on Class level  */
-  Led.begin(0);
-
+  uint8_t systeLedID = Data.getSystemLedID();
+  if (systeLedID > 0) {
+    Led.begin(systeLedID - 1);
+  }
   /* If device in configuration mode then start LED blinking */
-  if (Device.getMode() != MODE_NORMAL) {
+  if (Device.getMode() == MODE_ACCESS_POINT) {
     Led.blinkingOn(100);
   }
-  /* Initializing switches */
-  initSwitch();
-  /* Initializing PIRs */
-  initPIR();
-  /* Initializing MQTT */
-  if (Device.getMode() != MODE_ACCESS_POINT && Device.configuration.mqttAPI) {
-    MQTTConfiguration = Data.getMQTTConfiguration();
-    Mqtt.begin();
-  }
-  Network.connect();
+
+  Network.listener();
   /* Initializing HTTP WebServer */
   WebServer.handle("/", handleHTTPRequests);
   WebServer.handle("/favicon.ico", handleFavicon);
   WebServer.begin();
+
+  /* Initializing switches */
+  initSwitch();
+  /* Initializing PIRs */
+  initPIR();
+  /* Initializing APIs */
+  MQTTInit();
 }
 
 void loop() {
@@ -94,28 +85,39 @@ void loop() {
   if (Device.getMode() != MODE_ACCESS_POINT) {
     if (Network.connected()) {
       if (Device.getMode() == MODE_NORMAL) {
+
         /* Connect to MQTT if not connected */
         if (Device.configuration.mqttAPI) {
-          Mqtt.connected() ? Mqtt.loop() : Mqtt.connect();
+          Mqtt.listener();
         }
+
         WebServer.listener();
 
+        /* Checking if there was received HTTP API Command */
         mainHTTPRequestsHandler();
-        mainSwitch();
+        mainRelay();
         mainPIR();
 
       } else { // Configuration Mode
+        if (!Led.isBlinking()) {
+          Led.blinkingOn(100);
+        }
         WebServer.listener();
       }
-    } else { // Device not connected to WiFi. Reestablish connection
-      Network.connect();
+    } else {
+      if (Device.getMode() == MODE_CONFIGURATION && Led.isBlinking()) {
+        Led.blinkingOff();
+      }
     }
+    Network.listener();
   } else { // Access Point Mode
     Network.APListener();
     WebServer.listener();
   }
 
+  /* Listens for switch events */
   mainSwitchListener();
+  mainSwitch();
 
   Led.loop();
 }
