@@ -24,6 +24,8 @@ struct PIR {
   uint8_t relayId;
   uint16_t howLongKeepRelayOn;
   boolean invertRelayState;
+  unsigned long idx;
+  boolean NOorNC;
 };
 
 #endif
