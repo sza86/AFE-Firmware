@@ -1,6 +1,6 @@
 /* AFE Firmware for smart home devices
   LICENSE: https://github.com/tschaban/AFE-Firmware/blob/master/LICENSE
-  DOC: http://smart-house.adrian.czabanowski.com/afe-firmware-pl/ */
+  DOC: https://www.smartnydom.pl/afe-firmware-pl/ */
 
 #ifndef _AFE_WiFi_h
 #define _AFE_WiFi_h
@@ -31,6 +31,8 @@ private:
   DNSServer dnsServer;
   AFELED Led;
 
+  boolean eventConnectionEstablished = false;
+
 public:
   /* Constructor: no actions */
   AFEWiFi();
@@ -41,6 +43,9 @@ public:
 
   /* Return TRUE if device is connected to WiFi Acces Point */
   boolean connected();
+
+  /* Returns true if device just connected to the network. It's set to true each time it connected. */
+  boolean eventConnected();
 
   /* Method listens for HTTP request while device is in Access Point mode */
   void APListener();

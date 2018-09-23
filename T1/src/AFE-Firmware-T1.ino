@@ -1,6 +1,6 @@
 /* AFE Firmware for smart home devices
   LICENSE: https://github.com/tschaban/AFE-Firmware/blob/master/LICENSE
-  DOC: http://smart-house.adrian.czabanowski.com/afe-firmware-pl/ */
+  DOC: https://wwww.smartnydom.pl/afe-firmware-pl/ */
 
 #include <AFE-API-Domoticz.h>
 #include <AFE-API-MQTT.h>
@@ -95,6 +95,9 @@ void loop() {
   if (Device.getMode() != MODE_ACCESS_POINT) {
     if (Network.connected()) {
       if (Device.getMode() == MODE_NORMAL) {
+
+        /* It listens to events and process them */
+        eventsListener();
 
         /* Connect to MQTT if not connected */
         if (Device.configuration.mqttAPI) {
