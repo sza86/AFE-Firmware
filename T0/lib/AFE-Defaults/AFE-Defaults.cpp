@@ -58,7 +58,7 @@ void AFEDefaults::set() {
   RelayConfiguration.stateMQTTConnected = 0;
   sprintf(RelayConfiguration.name, "switch");
   RelayConfiguration.ledID = 0;
-  RelayConfiguration.idx = 1;
+  RelayConfiguration.idx = 0;
   Data->saveConfiguration(0, RelayConfiguration);
 
   SwitchConfiguration.gpio = 0;
