@@ -1,6 +1,6 @@
 /* AFE Firmware for smart home devices
   LICENSE: https://github.com/tschaban/AFE-Firmware/blob/master/LICENSE
-  DOC: http://smart-house.adrian.czabanowski.com/afe-firmware-pl/ */
+  DOC: https://www.smartnydom.pl/afe-firmware-pl/ */
 
 #ifndef _AFE_Defaults_h
 #define _AFE_Defaults_h
@@ -14,7 +14,7 @@
 #include <AFE-Configuration.h>
 #include <AFE-Data-Access.h>
 #include <AFE-EEPROM.h>
-//#include <Streaming.h>
+// #include <Streaming.h>
 
 class AFEDefaults {
 private:
@@ -23,11 +23,9 @@ private:
 
 public:
   AFEDefaults();
-
   void addDomoticzConfiguration();
   void addLEDConfiguration(uint8_t id, uint8_t gpio);
   void addDeviceID();
-
   /* Method erases EEPROM */
   void eraseConfiguration();
 

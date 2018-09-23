@@ -15,7 +15,8 @@ void mainRelay() {
     if (Device.configuration.isRelay[i]) {
       if (Relay[i].autoTurnOff()) {
         Led.on();
-        Mqtt.publish(Relay[i].getMQTTTopic(), "state", "off");
+        MQTTPublishRelayState(i);
+        DomoticzPublishRelayState(i);
         Led.off();
       }
     } else {

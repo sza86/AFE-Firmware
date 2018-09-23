@@ -126,7 +126,7 @@ RELAY AFEDataAccess::getRelayConfiguration(uint8_t id) {
   sprintf(configuration.mqttTopic, "%s%s/", configurationMQTT.topic,
           configuration.name);
 
-  configuration.ledID = Eeprom.readUInt8(421 + id);
+  configuration.ledID = Eeprom.readUInt8(618 + id);
 
   configuration.idx = Eeprom.read(930 + id, 6).toInt();
 
@@ -140,7 +140,7 @@ SWITCH AFEDataAccess::getSwitchConfiguration(uint8_t id) {
   configuration.type = Eeprom.readUInt8(472 + id * nextSwitch);
   configuration.sensitiveness = Eeprom.read(473 + id * nextSwitch, 3).toInt();
   configuration.functionality = Eeprom.readUInt8(476 + id * nextSwitch);
-  configuration.relayID = Eeprom.readUInt8(416 + id);
+  configuration.relayID = Eeprom.readUInt8(622 + id);
 
   return configuration;
 }
@@ -149,7 +149,6 @@ PIR AFEDataAccess::getPIRConfiguration(uint8_t id) {
   PIR configuration;
   MQTT configurationMQTT;
   uint8_t nextPIR = 27;
-  char mqttTopic[49];
   configuration.gpio = Eeprom.readUInt8(506 + id * nextPIR);
 
   Eeprom.read(507 + id * nextPIR, 16)
@@ -165,6 +164,9 @@ PIR AFEDataAccess::getPIRConfiguration(uint8_t id) {
 
   sprintf(configuration.mqttTopic, "%s%s/", configurationMQTT.topic,
           configuration.name);
+
+  configuration.idx = Eeprom.read(954 + id, 6).toInt();
+  configuration.NOorNC = Eeprom.read(613 + id);
 
   return configuration;
 }
@@ -239,7 +241,7 @@ void AFEDataAccess::saveConfiguration(uint8_t id, RELAY configuration) {
   Eeprom.writeUInt8(384 + id * nextRelay, configuration.statePowerOn);
   Eeprom.write(385 + id * nextRelay, 16, configuration.name);
   Eeprom.writeUInt8(401 + id * nextRelay, configuration.stateMQTTConnected);
-  Eeprom.writeUInt8(531 + id, configuration.ledID);
+  Eeprom.writeUInt8(618 + id, configuration.ledID);
   Eeprom.write(930 + 6 * id, 6, (long)configuration.idx);
 }
 
@@ -255,7 +257,7 @@ void AFEDataAccess::saveConfiguration(uint8_t id, SWITCH configuration) {
   Eeprom.writeUInt8(472 + id * nextSwitch, configuration.type);
   Eeprom.write(473 + id * nextSwitch, 3, (long)configuration.sensitiveness);
   Eeprom.writeUInt8(476 + id * nextSwitch, configuration.functionality);
-  Eeprom.writeUInt8(497 + id * nextSwitch, configuration.relayID);
+  Eeprom.writeUInt8(622 + id * nextSwitch, configuration.relayID);
 }
 
 void AFEDataAccess::saveConfiguration(uint8_t id, PIR configuration) {
@@ -266,6 +268,8 @@ void AFEDataAccess::saveConfiguration(uint8_t id, PIR configuration) {
   Eeprom.writeUInt8(525 + id * nextPIR, configuration.relayId);
   Eeprom.write(526 + id * nextPIR, 5, (long)configuration.howLongKeepRelayOn);
   Eeprom.write(531 + id * nextPIR, configuration.invertRelayState);
+  Eeprom.write(954 + 6 * id, 6, (long)configuration.idx);
+  Eeprom.write(613 + id, configuration.NOorNC);
 }
 
 void AFEDataAccess::saveVersion(String version) { Eeprom.write(0, 7, version); }
@@ -292,9 +296,9 @@ void AFEDataAccess::saveLanguage(uint8_t language) {
   Eeprom.writeUInt8(8, language);
 }
 
-uint8_t AFEDataAccess::getSystemLedID() { return Eeprom.readUInt8(415); }
+uint8_t AFEDataAccess::getSystemLedID() { return Eeprom.readUInt8(617); }
 
-void AFEDataAccess::saveSystemLedID(uint8_t id) { Eeprom.writeUInt8(415, id); }
+void AFEDataAccess::saveSystemLedID(uint8_t id) { Eeprom.writeUInt8(617, id); }
 
 const String AFEDataAccess::getDeviceID() { return Eeprom.read(1000, 8); }
 

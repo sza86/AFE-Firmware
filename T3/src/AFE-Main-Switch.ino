@@ -11,15 +11,14 @@ void initSwitch() {
 
 /* Method processes Switch related events */
 void mainSwitch() {
-
   for (uint8_t i = 0; i < sizeof(Device.configuration.isSwitch); i++) {
     if (Device.configuration.isSwitch[i]) {
       /* One of the switches has been shortly pressed */
-      if (Switch[i].isPressed() && Switch[i].getFunctionality() != 0) {
+      if (Switch[i].isPressed() && Switch[i].getControlledRelayID() > 0) {
         Led.on();
-        Relay[Switch[i].getFunctionality() - 11].toggle();
-        MQTTPublishRelayState(Switch[i].getFunctionality() -
-                              11); // MQTT Listener library
+        Relay[Switch[i].getControlledRelayID() - 1].toggle();
+        MQTTPublishRelayState(Switch[i].getControlledRelayID() - 1);
+        DomoticzPublishRelayState(Switch[i].getControlledRelayID() - 1);
         Led.off();
       }
     } else {

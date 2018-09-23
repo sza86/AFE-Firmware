@@ -1,15 +1,20 @@
 /* AFE Firmware for smart home devices
   LICENSE: https://github.com/tschaban/AFE-Firmware/blob/master/LICENSE
-  DOC: http://smart-house.adrian.czabanowski.com/afe-firmware-pl/ */
+  DOC: https://www.smartnydom.pl/afe-firmware-pl/ */
 
-#if defined(ARDUINO) && ARDUINO >= 100
-#include "arduino.h"
-#else
-#include "WProgram.h"
-#endif
+/* Method listens for HTTP Requests */
+void mainHTTPRequestsHandler() {
+  if (Device.configuration.httpAPI) {
+    if (WebServer.httpAPIlistener()) {
+      Led.on();
+      processHTTPAPIRequest(WebServer.getHTTPCommand());
+      Led.off();
+    }
+  }
+}
 
-/* Method creates JSON respons after processing HTTP API request, and pushes it
- */
+/* Method creates JSON respons after processing HTTP API request, and pushes it.
+ * The second one method converts float to charString before pushing response */
 void sendHTTPAPIRequestStatus(HTTPCOMMAND request, boolean status,
                               const char *value = "") {
   String respond;
@@ -35,6 +40,12 @@ void sendHTTPAPIRequestStatus(HTTPCOMMAND request, boolean status,
   respond += "\"}";
   WebServer.sendJSON(respond);
 }
+void sendHTTPAPIRequestStatus(HTTPCOMMAND request, boolean status, float value,
+                              uint8_t width = 2, uint8_t precision = 2) {
+  char valueString[10];
+  dtostrf(value, width, precision, valueString);
+  sendHTTPAPIRequestStatus(request, status, valueString);
+}
 
 /* Method converts Relay value to string and invokes sendHTTPAPIRequestStatus
  * method which creates JSON respons and pushes it */
@@ -53,7 +64,6 @@ void sendHTTPAPIPirRequestStatus(HTTPCOMMAND request, boolean status,
 void processHTTPAPIRequest(HTTPCOMMAND request) {
   /* Checking of request is about a relay */
   if (strcmp(request.device, "relay") == 0) {
-    uint8_t state;
     boolean noRelay = true;
     for (uint8_t i = 0; i < sizeof(Device.configuration.isRelay); i++) {
       if (Device.configuration.isRelay[i]) {
@@ -61,23 +71,30 @@ void processHTTPAPIRequest(HTTPCOMMAND request) {
           noRelay = false;
           if (strcmp(request.command, "on") == 0) {
             Relay[i].on();
+            MQTTPublishRelayState(i); // MQTT Listener library
+            if (strcmp(request.source, "domoticz") != 0) {
+              DomoticzPublishRelayState(i);
+            }
             sendHTTPAPIRelayRequestStatus(request, Relay[i].get() == RELAY_ON,
                                           Relay[i].get());
-            MQTTPublishRelayState(i); // MQTT Listener library
           } else if (strcmp(request.command, "off") == 0) { // Off
             Relay[i].off();
+            MQTTPublishRelayState(i); // MQTT Listener library
+            if (strcmp(request.source, "domoticz") != 0) {
+              DomoticzPublishRelayState(i);
+            }
             sendHTTPAPIRelayRequestStatus(request, Relay[i].get() == RELAY_OFF,
                                           Relay[i].get());
-            MQTTPublishRelayState(i); // MQTT Listener library
           } else if (strcmp(request.command, "toggle") == 0) { // toggle
-            state = Relay[i].get();
+            uint8_t state = Relay[i].get();
             Relay[i].toggle();
             sendHTTPAPIRelayRequestStatus(request, state != Relay[i].get(),
                                           Relay[i].get());
             MQTTPublishRelayState(i); // MQTT Listener library
-          } else if (strcmp(request.command, "reportStatus") == 0 ||
-                     strcmp(request.command, "get") ==
-                         0) { // reportStatus or get
+            if (strcmp(request.source, "domoticz") != 0) {
+              DomoticzPublishRelayState(i);
+            };
+          } else if (strcmp(request.command, "get") == 0) {
             sendHTTPAPIRelayRequestStatus(request, true, Relay[i].get());
             /* Command not implemented.Info */
           } else {
@@ -92,7 +109,6 @@ void processHTTPAPIRequest(HTTPCOMMAND request) {
       sendHTTPAPIRequestStatus(request, false);
     }
   } else if (strcmp(request.device, "pir") == 0) {
-    byte state;
     boolean noPir = true;
     for (uint8_t i = 0; i < sizeof(Device.configuration.isPIR); i++) {
       if (Device.configuration.isPIR[i]) {

@@ -1,7 +1,8 @@
 /* AFE Firmware for smart home devices
   LICENSE: https://github.com/tschaban/AFE-Firmware/blob/master/LICENSE
-  DOC: http://smart-house.adrian.czabanowski.com/afe-firmware-pl/ */
+  DOC: https://www.smartnydom.pl/afe-firmware-pl/ */
 
+#include <AFE-API-Domoticz.h>
 #include <AFE-API-MQTT.h>
 #include <AFE-Data-Access.h>
 #include <AFE-Device.h>
@@ -18,6 +19,7 @@ AFEDataAccess Data;
 AFEDevice Device;
 AFEWiFi Network;
 AFEMQTT Mqtt;
+AFEDomoticz Domoticz;
 AFEWebServer WebServer;
 AFELED Led;
 AFESwitch Switch[sizeof(Device.configuration.isSwitch)];
@@ -53,6 +55,7 @@ void setup() {
 
   /* Initializing relay */
   initRelay();
+
   /* Initialzing network */
   Network.begin(Device.getMode());
 
@@ -61,12 +64,14 @@ void setup() {
   if (systeLedID > 0) {
     Led.begin(systeLedID - 1);
   }
+
   /* If device in configuration mode then start LED blinking */
   if (Device.getMode() == MODE_ACCESS_POINT) {
     Led.blinkingOn(100);
   }
 
   Network.listener();
+
   /* Initializing HTTP WebServer */
   WebServer.handle("/", handleHTTPRequests);
   WebServer.handle("/favicon.ico", handleFavicon);
@@ -85,6 +90,9 @@ void loop() {
   if (Device.getMode() != MODE_ACCESS_POINT) {
     if (Network.connected()) {
       if (Device.getMode() == MODE_NORMAL) {
+
+        /* It listens to events and process them */
+        eventsListener();
 
         /* Connect to MQTT if not connected */
         if (Device.configuration.mqttAPI) {
@@ -119,5 +127,6 @@ void loop() {
   mainSwitchListener();
   mainSwitch();
 
+  /* Led listener */
   Led.loop();
 }
